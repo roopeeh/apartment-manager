@@ -12,9 +12,6 @@ def create_ecr(env: str):
         image_scanning_configuration=aws.ecr.RepositoryImageScanningConfigurationArgs(
             scan_on_push=True,
         ),
-        encryption_configuration=aws.ecr.RepositoryEncryptionConfigurationArgs(
-            encryption_type="AES256",
-        ),
         force_delete=env != "prod",
         tags={"Name": f"apartment-manager-{env}", "Environment": env},
     )

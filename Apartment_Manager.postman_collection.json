@@ -1,0 +1,810 @@
+{
+  "info": {
+    "name": "Apartment Manager API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://prod-mh-api.manato.in", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "society_id", "value": "", "type": "string" },
+    { "key": "flat_id", "value": "", "type": "string" },
+    { "key": "resident_id", "value": "", "type": "string" },
+    { "key": "payment_id", "value": "", "type": "string" },
+    { "key": "expense_id", "value": "", "type": "string" },
+    { "key": "notice_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"+91-9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  pm.collectionVariables.set('access_token', data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh_token);",
+                  "  if (data.roles && data.roles.length > 0 && data.roles[0].society_id) {",
+                  "    pm.collectionVariables.set('society_id', data.roles[0].society_id);",
+                  "  }",
+                  "  console.log('Token saved. Society ID:', pm.collectionVariables.get('society_id'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Password123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  pm.collectionVariables.set('access_token', data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/forgot-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/reset-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"RESET_TOKEN_HERE\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/change-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Password123!\",\n  \"new_password\": \"NewPassword123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Platform (Super Admin)",
+      "item": [
+        {
+          "name": "Platform Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/platform/stats"
+          }
+        },
+        {
+          "name": "List Societies",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/platform/societies?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "platform", "societies"],
+              "query": [
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "city", "value": "", "disabled": true },
+                { "key": "plan", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Society",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.society && data.society.id) {",
+                  "    pm.collectionVariables.set('society_id', data.society.id);",
+                  "    console.log('Society ID saved:', data.society.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/platform/societies",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sunshine Apartments\",\n  \"address\": \"123 Main Street\",\n  \"city\": \"Mumbai\",\n  \"phone\": \"+91-9876543210\",\n  \"email\": \"society@example.com\",\n  \"total_blocks\": 2,\n  \"blocks\": [\"A\", \"B\"],\n  \"floors\": [1, 2, 3, 4],\n  \"plan\": \"basic\",\n  \"admin\": {\n    \"name\": \"Society Admin\",\n    \"email\": \"admin@sunshine.com\",\n    \"phone\": \"+91-9876543211\",\n    \"password\": \"Admin@123!\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Society",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/platform/societies/{{society_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sunshine Apartments Updated\",\n  \"city\": \"Pune\",\n  \"status\": \"active\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Society",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/platform/societies/{{society_id}}"
+          }
+        },
+        {
+          "name": "Society Audit",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/platform/societies/{{society_id}}/audit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Societies",
+      "item": [
+        {
+          "name": "Get Society",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}"
+          }
+        },
+        {
+          "name": "Update Society",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Society Name\",\n  \"address\": \"456 New Street\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flats",
+      "item": [
+        {
+          "name": "List Flats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/flats?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "flats"],
+              "query": [
+                { "key": "block", "value": "", "disabled": true },
+                { "key": "occupancy", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Flat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('flat_id', data.id);",
+                  "    console.log('Flat ID saved:', data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/flats",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flat_number\": \"A-101\",\n  \"block\": \"A\",\n  \"floor\": 1,\n  \"area\": 1200,\n  \"owner_name\": \"Ramesh Kumar\",\n  \"phone\": \"+91-9876543210\",\n  \"email\": \"ramesh@example.com\",\n  \"occupancy\": \"owner\",\n  \"maintenance_amount\": 2500\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Flat",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/flats/{{flat_id}}"
+          }
+        },
+        {
+          "name": "Update Flat",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/flats/{{flat_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner_name\": \"Ramesh Kumar Updated\",\n  \"maintenance_amount\": 3000\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Flat",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/flats/{{flat_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Residents",
+      "item": [
+        {
+          "name": "List Residents",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/residents?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "residents"],
+              "query": [
+                { "key": "role", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "active", "value": "", "disabled": true },
+                { "key": "block", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Resident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('resident_id', data.id);",
+                  "    console.log('Resident ID saved:', data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/residents",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flat_id\": \"{{flat_id}}\",\n  \"name\": \"Ramesh Kumar\",\n  \"phone\": \"+91-9876543210\",\n  \"email\": \"ramesh@example.com\",\n  \"role\": \"owner\",\n  \"move_in_date\": \"2024-01-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Resident",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/residents/{{resident_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ramesh Kumar Updated\",\n  \"phone\": \"+91-9876543211\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Deactivate Resident",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/residents/{{resident_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Payment Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/payments/summary?year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "payments", "summary"],
+              "query": [{ "key": "year", "value": "2024" }]
+            }
+          }
+        },
+        {
+          "name": "List Payments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/payments?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "payments"],
+              "query": [
+                { "key": "month", "value": "", "disabled": true },
+                { "key": "year", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "block", "value": "", "disabled": true },
+                { "key": "flat_id", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Bills",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/payments/generate-bills",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": \"January\",\n  \"year\": 2024\n}"
+            }
+          }
+        },
+        {
+          "name": "Record Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('payment_id', data.id);",
+                  "    console.log('Payment ID saved:', data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flat_id\": \"{{flat_id}}\",\n  \"month\": \"January\",\n  \"year\": 2024,\n  \"amount_paid\": 2500,\n  \"payment_mode\": \"upi\",\n  \"payment_date\": \"2024-01-15\",\n  \"transaction_ref\": \"UPI123456\",\n  \"remarks\": \"January maintenance\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Payment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/payments/{{payment_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_paid\": 3000,\n  \"payment_mode\": \"bank_transfer\",\n  \"transaction_ref\": \"NEFT789\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Payment Order (Razorpay)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/payments/create-order",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flat_id\": \"{{flat_id}}\",\n  \"month\": \"January\",\n  \"year\": 2024,\n  \"amount\": 2500\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "Expense Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/expenses/summary?year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "expenses", "summary"],
+              "query": [{ "key": "year", "value": "2024" }]
+            }
+          }
+        },
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/expenses?page=1&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "expenses"],
+              "query": [
+                { "key": "category", "value": "", "disabled": true },
+                { "key": "month", "value": "", "disabled": true },
+                { "key": "year", "value": "", "disabled": true },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('expense_id', data.id);",
+                  "    console.log('Expense ID saved:', data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/expenses",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "date", "value": "2024-01-15", "type": "text" },
+                { "key": "title", "value": "Elevator Maintenance", "type": "text" },
+                { "key": "category", "value": "maintenance", "type": "text" },
+                { "key": "vendor", "value": "TechFix Pvt Ltd", "type": "text" },
+                { "key": "amount", "value": "5000", "type": "text" },
+                { "key": "notes", "value": "Monthly elevator service", "type": "text" },
+                { "key": "attachment", "value": "", "type": "file", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Expense",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/expenses/{{expense_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Elevator Maintenance Updated\",\n  \"amount\": 5500\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/expenses/{{expense_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notices",
+      "item": [
+        {
+          "name": "List Notices",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/notices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "notices"],
+              "query": [
+                { "key": "priority", "value": "", "disabled": true },
+                { "key": "pinned", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Notice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('notice_id', data.id);",
+                  "    console.log('Notice ID saved:', data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/notices",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Water Supply Disruption\",\n  \"message\": \"Water supply will be disrupted on 20th Jan from 10am to 2pm due to maintenance work.\",\n  \"priority\": \"high\",\n  \"pinned\": false,\n  \"expiry_date\": \"2024-01-21\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Notice",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/v1/notices/{{notice_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Notice Title\",\n  \"pinned\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Notice",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/notices/{{notice_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard & Reports",
+      "item": [
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/dashboard"
+          }
+        },
+        {
+          "name": "Resident Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/societies/{{society_id}}/resident-dashboard"
+          }
+        },
+        {
+          "name": "Report - Collection",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/reports?type=collection&month=1&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "reports"],
+              "query": [
+                { "key": "type", "value": "collection" },
+                { "key": "month", "value": "1" },
+                { "key": "year", "value": "2024" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Report - Expense",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/reports?type=expense&month=1&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "reports"],
+              "query": [
+                { "key": "type", "value": "expense" },
+                { "key": "month", "value": "1" },
+                { "key": "year", "value": "2024" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Report - Outstanding",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/reports?type=outstanding&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "reports"],
+              "query": [
+                { "key": "type", "value": "outstanding" },
+                { "key": "year", "value": "2024" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Report - Yearly Summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/societies/{{society_id}}/reports?type=yearly_summary&year=2024",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "societies", "{{society_id}}", "reports"],
+              "query": [
+                { "key": "type", "value": "yearly_summary" },
+                { "key": "year", "value": "2024" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload & Webhooks",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "value": "", "type": "file" },
+                { "key": "type", "value": "expense_receipt", "type": "text", "description": "One of: expense_receipt, notice_image, society_logo" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment Webhook (Razorpay)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Razorpay-Signature", "value": "SIGNATURE_HERE" }
+            ],
+            "url": "{{base_url}}/api/v1/webhooks/payment",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_XXXXXXXX\",\n  \"razorpay_payment_id\": \"pay_XXXXXXXX\",\n  \"razorpay_signature\": \"SIGNATURE_HERE\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

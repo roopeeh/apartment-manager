@@ -3,7 +3,7 @@ description: AWS infrastructure for Apartment Manager SaaS
 runtime:
   name: python
   options:
-    virtualenv: venv
+    virtualenv: ../venv
 config:
   pulumi:tags:
     value:

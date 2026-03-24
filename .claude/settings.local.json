@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(MSYS_NO_PATHCONV=1 aws elbv2 describe-target-health --target-group-arn \"arn:aws:elasticloadbalancing:us-east-1:943425173571:targetgroup/apartment-manager-dev/a82f4d87d1b819cc\" --region us-east-1 --profile manato-admin --output json)"
+    ]
+  }
+}

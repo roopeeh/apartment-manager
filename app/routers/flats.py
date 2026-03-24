@@ -6,7 +6,7 @@ import uuid
 
 from app.database import get_db
 from app.models.models import Flat, Resident, Payment
-from app.schemas.flat import FlatCreate, FlatUpdate, FlatOut
+from app.schemas.flat import FlatCreate, FlatUpdate, FlatOut, FlatListOut
 from app.schemas.resident import ResidentOut
 from app.schemas.payment import PaymentOut
 from app.dependencies import require_society_access, require_society_admin, get_current_user_with_roles
@@ -38,10 +38,26 @@ async def list_flats(
     total = await db.scalar(select(func.count()).select_from(q.subquery()))
     flats = (await db.execute(q.offset((page - 1) * limit).limit(limit))).scalars().all()
 
-    return paginated_response(
-        [FlatOut.model_validate(f).model_dump() for f in flats],
-        total, page, limit
-    )
+    result = []
+    for flat in flats:
+        flat_data = FlatOut.model_validate(flat).model_dump()
+        
+        tenant_result = await db.execute(
+            select(Resident).where(
+                Resident.flat_id == flat.id,
+                Resident.role == "Tenant",
+                Resident.active == True
+            ).limit(1)
+        )
+        tenant = tenant_result.scalar_one_or_none()
+        
+        flat_data["tenant_name"] = tenant.name if tenant else None
+        flat_data["tenant_phone"] = tenant.phone if tenant else None
+        flat_data["tenant_email"] = tenant.email if tenant else None
+        
+        result.append(flat_data)
+
+    return paginated_response(result, total, page, limit)
 
 
 @router.post("/societies/{society_id}/flats", status_code=201)
@@ -51,11 +67,33 @@ async def create_flat(
     current=Depends(require_society_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    flat = Flat(society_id=society_id, **body.model_dump())
+    flat_data = body.model_dump(exclude={"tenant_name", "tenant_phone", "tenant_email"})
+    flat = Flat(society_id=society_id, **flat_data)
     db.add(flat)
+    await db.flush()
+    
+    tenant = None
+    if body.tenant_name:
+        tenant = Resident(
+            society_id=society_id,
+            flat_id=flat.id,
+            name=body.tenant_name,
+            phone=body.tenant_phone,
+            email=body.tenant_email,
+            role="Tenant",
+            active=True
+        )
+        db.add(tenant)
+    
     await db.commit()
     await db.refresh(flat)
-    return success_response(FlatOut.model_validate(flat).model_dump())
+    
+    flat_response = FlatOut.model_validate(flat).model_dump()
+    flat_response["tenant_name"] = tenant.name if tenant else None
+    flat_response["tenant_phone"] = tenant.phone if tenant else None
+    flat_response["tenant_email"] = tenant.email if tenant else None
+    
+    return success_response(flat_response)
 
 
 @router.get("/flats/{flat_id}")
@@ -105,7 +143,23 @@ async def update_flat(
         setattr(flat, field, value)
     await db.commit()
     await db.refresh(flat)
-    return success_response(FlatOut.model_validate(flat).model_dump())
+    
+    flat_data = FlatOut.model_validate(flat).model_dump()
+    
+    tenant_result = await db.execute(
+        select(Resident).where(
+            Resident.flat_id == flat.id,
+            Resident.role == "Tenant",
+            Resident.active == True
+        ).limit(1)
+    )
+    tenant = tenant_result.scalar_one_or_none()
+    
+    flat_data["tenant_name"] = tenant.name if tenant else None
+    flat_data["tenant_phone"] = tenant.phone if tenant else None
+    flat_data["tenant_email"] = tenant.email if tenant else None
+    
+    return success_response(flat_data)
 
 
 @router.delete("/flats/{flat_id}")

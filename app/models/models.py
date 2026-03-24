@@ -103,6 +103,7 @@ class Flat(Base):
     phone = Column(String(20))
     email = Column(String(255))
     occupancy = Column(String(10), default="vacant")
+    is_rental = Column(Boolean, default=False)
     maintenance_amount = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 

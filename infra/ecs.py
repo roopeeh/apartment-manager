@@ -241,6 +241,7 @@ def create_ecs(
                     ],
                     "essential": True,
                     "environment": [
+                        {"name": "DATABASE_URL", "value": args[2]},
                         {"name": "UPLOAD_DIR", "value": "/tmp/uploads"},
                         {"name": "ALGORITHM", "value": "HS256"},
                         {"name": "ACCESS_TOKEN_EXPIRE_MINUTES", "value": "60"},
@@ -248,12 +249,6 @@ def create_ecs(
                         {"name": "CORS_ORIGINS", "value": '["*"]'},
                         {"name": "S3_BUCKET", "value": args[5]},
                         {"name": "AWS_DEFAULT_REGION", "value": "us-east-1"},
-                    ],
-                    "secrets": [
-                        {
-                            "name": "DATABASE_URL",
-                            "valueFrom": args[2] if isinstance(args[2], str) and args[2].startswith("arn:") else args[3],
-                        },
                     ],
                     "logConfiguration": {
                         "logDriver": "awslogs",
@@ -404,6 +399,7 @@ def create_ecs(
         "alb": alb,
         "alb_dns": alb.dns_name,
         "target_group": target_group,
+        "http_listener": http_listener,
         "ecs_sg": ecs_sg,
         "uploads_bucket": uploads_bucket,
         "log_group": log_group,

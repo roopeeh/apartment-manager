@@ -18,9 +18,13 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Create app_role enum
-    app_role = postgresql.ENUM("super_admin", "admin", "resident", name="app_role")
-    app_role.create(op.get_bind())
+    # Create app_role enum idempotently
+    op.execute(sa.text(
+        "DO $$ BEGIN "
+        "CREATE TYPE app_role AS ENUM ('super_admin', 'admin', 'resident'); "
+        "EXCEPTION WHEN duplicate_object THEN null; "
+        "END $$;"
+    ))
 
     # societies
     op.create_table(
@@ -33,10 +37,10 @@ def upgrade() -> None:
         sa.Column("email", sa.String(255)),
         sa.Column("logo_url", sa.Text),
         sa.Column("total_blocks", sa.Integer, server_default="0"),
-        sa.Column("blocks", postgresql.JSONB, server_default="'[]'"),
-        sa.Column("floors", postgresql.JSONB, server_default="'[]'"),
-        sa.Column("config", postgresql.JSONB, server_default="'{}'"),
-        sa.Column("payment_gateway", postgresql.JSONB, server_default="'{}'"),
+        sa.Column("blocks", postgresql.JSONB, server_default=sa.text("'[]'::jsonb")),
+        sa.Column("floors", postgresql.JSONB, server_default=sa.text("'[]'::jsonb")),
+        sa.Column("config", postgresql.JSONB, server_default=sa.text("'{}'::jsonb")),
+        sa.Column("payment_gateway", postgresql.JSONB, server_default=sa.text("'{}'::jsonb")),
         sa.Column("plan", sa.String(20), server_default="'basic'"),
         sa.Column("status", sa.String(20), server_default="'onboarding'"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
@@ -65,7 +69,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("society_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("societies.id", ondelete="CASCADE"), nullable=True),
-        sa.Column("role", sa.Enum("super_admin", "admin", "resident", name="app_role"), nullable=False),
+        sa.Column("role", postgresql.ENUM(name="app_role", create_type=False), nullable=False),
         sa.UniqueConstraint("user_id", "society_id", "role", name="uq_user_society_role"),
     )
 

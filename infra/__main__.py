@@ -29,6 +29,7 @@ from vpc import create_vpc
 from ecr import create_ecr
 from ecs import create_ecs
 from rds import create_rds
+from domain import create_domain
 
 config = pulumi.Config()
 env = config.get("environment") or "dev"
@@ -51,7 +52,7 @@ ecs_sg_placeholder = aws.ec2.SecurityGroup(
 rds_resources = create_rds(
     env=env,
     vpc=vpc_resources["vpc"],
-    private_subnets=vpc_resources["private_subnets"],
+    private_subnets=vpc_resources["public_subnets"],  # Use public subnets for public access
     ecs_sg_id=ecs_sg_placeholder.id,
     config=config,
 )
@@ -68,6 +69,15 @@ ecs_resources = create_ecs(
     database_url=rds_resources["database_url"],
     db_password_secret_arn=rds_resources["db_password_secret_arn"],
     app_secret_arn=rds_resources["app_secret_arn"],
+    config=config,
+)
+
+# ── Custom Domain + HTTPS ────────────────────────────────────────────────────
+create_domain(
+    env=env,
+    alb=ecs_resources["alb"],
+    target_group=ecs_resources["target_group"],
+    http_listener=ecs_resources["http_listener"],
     config=config,
 )
 

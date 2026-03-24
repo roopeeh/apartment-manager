@@ -22,7 +22,7 @@ def create_rds(env: str, vpc, private_subnets: list, ecs_sg_id, config: pulumi.C
         f"db-password-value-{env}",
         secret_id=db_password.id,
         secret_string=pulumi.Output.secret(
-            pulumi.Output.from_input("ApartmentManager@2024!")  # Change in production
+            pulumi.Output.from_input("ApartmentManager2024!")  # Change in production
         ),
     )
 
@@ -49,14 +49,14 @@ def create_rds(env: str, vpc, private_subnets: list, ecs_sg_id, config: pulumi.C
     rds_sg = aws.ec2.SecurityGroup(
         f"rds-sg-{env}",
         vpc_id=vpc.id,
-        description="Allow PostgreSQL from ECS tasks only",
+        description="Allow PostgreSQL from anywhere (public access)",
         ingress=[
             aws.ec2.SecurityGroupIngressArgs(
                 protocol="tcp",
                 from_port=5432,
                 to_port=5432,
-                security_groups=[ecs_sg_id],
-                description="PostgreSQL from ECS",
+                cidr_blocks=["0.0.0.0/0"],
+                description="PostgreSQL from anywhere",
             )
         ],
         egress=[
@@ -70,9 +70,9 @@ def create_rds(env: str, vpc, private_subnets: list, ecs_sg_id, config: pulumi.C
         tags={"Name": f"apartment-manager-rds-sg-{env}", "Environment": env},
     )
 
-    # DB Subnet Group
+    # DB Subnet Group (using public subnets for public access)
     db_subnet_group = aws.rds.SubnetGroup(
-        f"db-subnet-group-{env}",
+        f"db-subnet-group-public-{env}",
         subnet_ids=[s.id for s in private_subnets],
         tags={"Name": f"apartment-manager-db-subnet-{env}", "Environment": env},
     )
@@ -93,8 +93,8 @@ def create_rds(env: str, vpc, private_subnets: list, ecs_sg_id, config: pulumi.C
 
     # RDS Instance
     db_instance = aws.rds.Instance(
-        f"db-{env}",
-        identifier=f"apartment-manager-{env}",
+        f"db-public-{env}",
+        identifier=f"apartment-manager-public-{env}",
         engine="postgres",
         engine_version="16.3",
         instance_class=db_instance_class,        # db.t3.micro on dev (~$13/mo)
@@ -117,7 +117,7 @@ def create_rds(env: str, vpc, private_subnets: list, ecs_sg_id, config: pulumi.C
         deletion_protection=is_prod,
         # dev: Single-AZ (Multi-AZ doubles cost: ~$26/mo vs ~$13/mo)
         multi_az=is_prod,
-        publicly_accessible=False,
+        publicly_accessible=True,
         auto_minor_version_upgrade=True,
         # dev: performance insights off (costs extra)
         performance_insights_enabled=is_prod,
