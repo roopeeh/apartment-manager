@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
+from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 from datetime import date
@@ -91,7 +92,7 @@ async def admin_dashboard(
 
     # Recent expenses
     recent_expenses_q = (await db.execute(
-        select(Expense).where(Expense.society_id == society_id).order_by(Expense.created_at.desc()).limit(5)
+        select(Expense).where(Expense.society_id == society_id).options(selectinload(Expense.splits)).order_by(Expense.created_at.desc()).limit(5)
     )).scalars().all()
     recent_expenses = [ExpenseOut.model_validate(e).model_dump() for e in recent_expenses_q]
 
@@ -211,7 +212,7 @@ async def resident_dashboard(
     total_expenses = sum(float(e.amount) for e in cm_expenses)
 
     recent_expenses_q = (await db.execute(
-        select(Expense).where(Expense.society_id == society_id).order_by(Expense.created_at.desc()).limit(5)
+        select(Expense).where(Expense.society_id == society_id).options(selectinload(Expense.splits)).order_by(Expense.created_at.desc()).limit(5)
     )).scalars().all()
     recent_notices_q = (await db.execute(
         select(Notice).where(Notice.society_id == society_id).order_by(Notice.pinned.desc(), Notice.created_at.desc()).limit(4)

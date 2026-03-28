@@ -1,8 +1,23 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
 import uuid
 from datetime import datetime, date
 from decimal import Decimal
+
+
+class ExpenseSplitItem(BaseModel):
+    flat_id: uuid.UUID
+    amount: Decimal
+
+
+class ExpenseSplitOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: uuid.UUID
+    expense_id: uuid.UUID
+    flat_id: uuid.UUID
+    amount: Decimal
+    created_at: datetime
 
 
 class ExpenseCreate(BaseModel):
@@ -13,6 +28,8 @@ class ExpenseCreate(BaseModel):
     amount: Decimal
     notes: Optional[str] = ""
     attachment_url: Optional[str] = None
+    split_mode: Optional[str] = None
+    splits: Optional[List[ExpenseSplitItem]] = None
 
 
 class ExpenseUpdate(BaseModel):
@@ -39,6 +56,8 @@ class ExpenseOut(BaseModel):
     notes: Optional[str] = None
     attachment_url: Optional[str] = None
     has_attachment: bool = False
+    split_mode: Optional[str] = None
+    splits: List[ExpenseSplitOut] = []
     created_at: datetime
 
     @classmethod

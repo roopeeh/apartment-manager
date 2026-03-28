@@ -32,6 +32,9 @@ class FlatUpdate(BaseModel):
     occupancy: Optional[str] = None
     is_rental: Optional[bool] = None
     maintenance_amount: Optional[Decimal] = None
+    tenant_name: Optional[str] = None
+    tenant_phone: Optional[str] = None
+    tenant_email: Optional[str] = None
 
 
 class FlatOut(BaseModel):

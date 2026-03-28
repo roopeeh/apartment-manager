@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Form, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
+from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 import os
@@ -8,11 +9,12 @@ import aiofiles
 from datetime import date as date_type
 
 from app.database import get_db
-from app.models.models import Expense, AppRole
+from app.models.models import Expense, ExpenseSplit, AppRole
 from app.schemas.expense import ExpenseCreate, ExpenseUpdate, ExpenseOut
 from app.dependencies import require_society_access, require_society_admin, get_current_user_with_roles
 from app.utils.responses import success_response, paginated_response
 from app.config import settings
+import json
 
 router = APIRouter(tags=["expenses"])
 
@@ -59,7 +61,7 @@ async def list_expenses(
     current=Depends(require_society_access),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(Expense).where(Expense.society_id == society_id)
+    q = select(Expense).where(Expense.society_id == society_id).options(selectinload(Expense.splits))
     if category:
         q = q.where(Expense.category == category)
     if month:
@@ -91,6 +93,8 @@ async def create_expense(
     amount: float = Form(...),
     notes: Optional[str] = Form(""),
     attachment: Optional[UploadFile] = File(None),
+    split_mode: Optional[str] = Form(None),
+    splits: Optional[str] = Form(None),
     current=Depends(require_society_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -114,8 +118,26 @@ async def create_expense(
         notes=notes,
         attachment_url=attachment_url,
         added_by=user.id,
+        split_mode=split_mode,
     )
     db.add(expense)
+    await db.flush()
+
+    # Handle splits if provided
+    if split_mode and splits:
+        try:
+            splits_data = json.loads(splits)
+            for split_item in splits_data:
+                expense_split = ExpenseSplit(
+                    expense_id=expense.id,
+                    flat_id=uuid.UUID(split_item["flat_id"]),
+                    amount=float(split_item["amount"]),
+                )
+                db.add(expense_split)
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            await db.rollback()
+            raise HTTPException(status_code=400, detail=f"Invalid splits data: {str(e)}")
+
     await db.commit()
     await db.refresh(expense)
 

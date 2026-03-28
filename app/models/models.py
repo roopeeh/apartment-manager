@@ -174,9 +174,24 @@ class Expense(Base):
     added_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     notes = Column(Text, default="")
     attachment_url = Column(Text)
+    split_mode = Column(String(50))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     society = relationship("Society", back_populates="expenses")
+    splits = relationship("ExpenseSplit", back_populates="expense", cascade="all, delete-orphan")
+
+
+class ExpenseSplit(Base):
+    __tablename__ = "expense_splits"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    expense_id = Column(UUID(as_uuid=True), ForeignKey("expenses.id", ondelete="CASCADE"), nullable=False)
+    flat_id = Column(UUID(as_uuid=True), ForeignKey("flats.id", ondelete="CASCADE"), nullable=False)
+    amount = Column(Numeric(10, 2), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    expense = relationship("Expense", back_populates="splits")
+    flat = relationship("Flat")
 
 
 class Notice(Base):

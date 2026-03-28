@@ -139,12 +139,9 @@ async def update_flat(
     if not has_access:
         raise HTTPException(status_code=403, detail="Admin access required")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    flat_data = body.model_dump(exclude_none=True, exclude={"tenant_name", "tenant_phone", "tenant_email"})
+    for field, value in flat_data.items():
         setattr(flat, field, value)
-    await db.commit()
-    await db.refresh(flat)
-    
-    flat_data = FlatOut.model_validate(flat).model_dump()
     
     tenant_result = await db.execute(
         select(Resident).where(
@@ -155,11 +152,36 @@ async def update_flat(
     )
     tenant = tenant_result.scalar_one_or_none()
     
-    flat_data["tenant_name"] = tenant.name if tenant else None
-    flat_data["tenant_phone"] = tenant.phone if tenant else None
-    flat_data["tenant_email"] = tenant.email if tenant else None
+    if body.tenant_name is not None:
+        if tenant:
+            tenant.name = body.tenant_name
+            if body.tenant_phone is not None:
+                tenant.phone = body.tenant_phone
+            if body.tenant_email is not None:
+                tenant.email = body.tenant_email
+        else:
+            tenant = Resident(
+                society_id=flat.society_id,
+                flat_id=flat.id,
+                name=body.tenant_name,
+                phone=body.tenant_phone,
+                email=body.tenant_email,
+                role="Tenant",
+                active=True
+            )
+            db.add(tenant)
     
-    return success_response(flat_data)
+    await db.commit()
+    await db.refresh(flat)
+    if tenant:
+        await db.refresh(tenant)
+    
+    flat_response = FlatOut.model_validate(flat).model_dump()
+    flat_response["tenant_name"] = tenant.name if tenant else None
+    flat_response["tenant_phone"] = tenant.phone if tenant else None
+    flat_response["tenant_email"] = tenant.email if tenant else None
+    
+    return success_response(flat_response)
 
 
 @router.delete("/flats/{flat_id}")
